@@ -111,6 +111,6 @@ Return JSON: {"layer": "<one of the four layer names>", "confidence": <0.0-1.0>,
 
 ## Why This Matters for SOMA
 
-Tagging findings to layers enables SOMA to answer: "What is the state of my Proto-Self right now, and what interventions most directly improve it?" The Extended Consciousness layer becomes a longevity map. The Relational Self layer directly answers: "What is Paul's capacity to be fully present for River?"
+Tagging findings to layers enables SOMA to answer: "What is the state of my Proto-Self right now, and what interventions most directly improve it?" The Extended Consciousness layer becomes a longevity map. The Relational Self layer directly answers: "What is the patient's capacity to be fully present for the people who matter most?"
 
 This is not metaphor. It is a clinical ontology built on phenomenological foundations.

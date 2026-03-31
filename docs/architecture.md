@@ -42,9 +42,9 @@ BiomarkerProfile
 @dataclass
 class BiomarkerProfile:
     # Lab values
-    shbg_nmol_l: float           # Paul: 78.0 (elevated)
-    homocysteine_umol_l: float   # Paul: 11.2 (borderline high)
-    vitamin_d_ng_ml: float       # Paul: insufficient
+    shbg_nmol_l: float           # elevated
+    homocysteine_umol_l: float   # borderline high
+    vitamin_d_ng_ml: float       # insufficient
     free_testosterone_pg_ml: float
     
     # Sleep
@@ -125,7 +125,7 @@ class PaperExtract:
     effect_size: float | None # Cohen's d or % change if reported
     effect_direction: str     # "positive" | "negative" | "null" | "mixed"
     outcome_measure: str      # "homocysteine reduction"
-    safe_for_profile: bool    # LLM judgment given Paul's conditions
+    safe_for_profile: bool    # LLM judgment given patient conditions
     actionable: bool          # concrete intervention available OTC or via prescription
     conflicts_with_supplements: list[str]  # any conflicts with current_supplements
 ```
@@ -285,7 +285,7 @@ Cron job on NAS: run research loop weekly, generate new briefing, write to Lance
 ```bash
 OPENROUTER_API_KEY=sk-or-...
 LANCEDB_PATH=./data/lancedb           # local dev
-PROFILE_PATH=./data/paul_profile.json
+PROFILE_PATH=./data/patient_876.json
 MAX_ITERATIONS=5
 ABSTRACT_SCORE_THRESHOLD=0.6
 LOG_LEVEL=INFO

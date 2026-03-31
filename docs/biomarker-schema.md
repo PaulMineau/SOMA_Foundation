@@ -1,10 +1,10 @@
 # Biomarker Profile Schema
 
-## paul_profile.json (seed file)
+## patient_876.json (seed file)
 
 ```json
 {
-  "profile_id": "paul_2026_q1",
+  "profile_id": "patient_876",
   "updated": "2026-03-16",
   
   "lab_values": {
@@ -119,6 +119,6 @@ hypothyroidism
 
 ## Updating the Profile
 
-After each lab draw or Fitbit sync, update `paul_profile.json` and re-run the research loop. The novelty filter and relevance scores will automatically recalibrate.
+After each lab draw or Fitbit sync, update `patient_876.json` and re-run the research loop. The novelty filter and relevance scores will automatically recalibrate.
 
 Track `updated` date — the agent logs research sessions against profile version.

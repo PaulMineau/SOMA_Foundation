@@ -54,7 +54,7 @@ soma/
 pip install -e .
 
 # Run one research loop
-python -m soma.autoresearcher.run --profile data/paul_profile.json --max-iterations 5
+python -m soma.autoresearcher.run --profile data/patient_876.json --max-iterations 5
 
 # Run overnight loop (all 4 layer search arms)
 python -m soma.autoresearcher.run --overnight
@@ -117,5 +117,5 @@ mypy soma/ --strict
 1. Proto-Self first — build the foundation before the roof
 2. Champion/challenger on every model — nothing ships without beating the incumbent
 3. The overnight loop is the thesis — a system that reads science to improve its own architecture
-4. Be your own customer — Paul is SOMA's first research instance
+4. Be your own customer — the first research instance drives design decisions
 5. Demo-driven milestones

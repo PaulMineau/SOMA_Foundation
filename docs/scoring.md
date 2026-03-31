@@ -12,7 +12,7 @@ All components are [0.0, 1.0]. Final score is their product.
 
 ## R — Relevance
 
-**What it measures**: How closely does this paper's study population and intervention match Paul's biomarker profile?
+**What it measures**: How closely does this paper's study population and intervention match the patient's biomarker profile?
 
 **Method**: Cosine similarity between:
 - `paper_embedding`: encode `"{population_description}. {intervention}."`
@@ -34,7 +34,7 @@ All components are [0.0, 1.0]. Final score is their product.
 
 ## A — Actionability
 
-**What it measures**: Can Paul actually do something about this, safely, this week?
+**What it measures**: Can the patient actually do something about this, safely, this week?
 
 **Binary preconditions** (if either is false → A = 0.0):
 1. `extract.actionable == True`: paper describes a concrete intervention (supplement, lifestyle change, procedure)
@@ -62,7 +62,7 @@ elif effect_direction == "mixed":
     A = 0.4
 ```
 
-**Supplement conflicts**: If `intervention` conflicts with `current_supplements` (e.g., "avoid B12 with metformin"), flag in synthesis but don't zero out A — let Paul decide.
+**Supplement conflicts**: If `intervention` conflicts with `current_supplements` (e.g., "avoid B12 with metformin"), flag in synthesis but don't zero out A — let the patient decide.
 
 ---
 
@@ -95,7 +95,7 @@ elif effect_direction == "mixed":
 
 ## N — Novelty
 
-**What it measures**: Is this something Paul doesn't already know and act on?
+**What it measures**: Is this something the patient doesn't already know and act on?
 
 **Method**: 
 1. Embed `extract.intervention` → `paper_action_emb`
@@ -103,7 +103,7 @@ elif effect_direction == "mixed":
 3. `N = 1.0 - similarity`
 
 **Intuition**:
-- "Take methylated B12" when Paul already takes it → similarity ≈ 0.9 → N ≈ 0.1
+- "Take methylated B12" when patient already takes it → similarity ≈ 0.9 → N ≈ 0.1
 - "Tongkat Ali for SHBG reduction" → similarity ≈ 0.2 → N ≈ 0.8 (novel)
 - "Creatine monohydrate for sleep apnea" → similarity ≈ 0.1 → N ≈ 0.9 (novel, unexpected)
 
@@ -128,7 +128,7 @@ elif effect_direction == "mixed":
 
 - Not a replacement for clinical judgment
 - Not designed to identify drug interactions (flag for clinician)
-- Not calibrated for populations other than Paul's specific profile
+- Not calibrated for populations other than the active patient profile
 - Not a diagnostic tool — descriptive only
 
 The briefing always ends with: "Discuss top-scored interventions with your physician before changing protocols."

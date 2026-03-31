@@ -8,5 +8,7 @@ build/
 .env
 .env.local
 data/lancedb/
+data/patient_*.json
+data/training_data.jsonl
 *.DS_Store
 .venv/

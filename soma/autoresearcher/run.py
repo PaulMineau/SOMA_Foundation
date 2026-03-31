@@ -329,7 +329,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--profile",
-        default=os.environ.get("PROFILE_PATH", "data/paul_profile.json"),
+        default=os.environ.get("PROFILE_PATH", "data/patient_876.json"),
         help="Path to biomarker profile JSON",
     )
     parser.add_argument(
