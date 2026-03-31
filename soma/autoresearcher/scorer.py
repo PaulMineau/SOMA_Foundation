@@ -248,3 +248,52 @@ def score_paper(
         primary_layer=primary_layer,
         layer_scores=layer_scores,
     )
+
+
+# Architecture-relevant keywords — papers describing model designs,
+# training signals, or benchmarks that SOMA could implement
+_ARCHITECTURE_KEYWORDS: list[str] = [
+    "model", "architecture", "neural network", "transformer",
+    "training", "benchmark", "computational", "simulation",
+    "algorithm", "framework", "prediction error", "bayesian",
+    "inference", "encoding", "decoding", "representation",
+    "latent", "embedding", "classifier", "regression",
+]
+
+
+def score_architecture_paper(
+    paper: Paper,
+    extract: PaperExtract,
+) -> RAENScore:
+    """Score a consciousness/neuroscience paper for architectural relevance.
+
+    For papers from layer search arms, RAEN health scoring doesn't apply.
+    Instead we score on:
+    - E (Evidence quality) — study rigor still matters
+    - LSS (Layer Specificity) — how clearly does it map to one Damasio layer?
+    - Architectural relevance — does it describe models, training signals, or
+      benchmarks that SOMA could implement?
+
+    Total = E * (LSS + arch_relevance) / 2, normalized to [0, 1].
+    """
+    e = compute_evidence(paper)
+    lss, primary_layer, layer_scores = compute_layer_specificity(paper, extract)
+
+    # Architectural relevance: does the paper describe implementable ideas?
+    text = f"{paper.title} {paper.abstract}".lower()
+    arch_hits = sum(1 for kw in _ARCHITECTURE_KEYWORDS if kw in text)
+    arch_relevance = _clamp(arch_hits / 5.0)  # 5+ hits = max score
+
+    total = e * (lss + arch_relevance) / 2.0
+
+    logger.info(
+        "ARCH score for '%s': E=%.2f LSS=%.2f arch=%.2f layer=%s total=%.3f",
+        paper.title[:60],
+        e, lss, arch_relevance, primary_layer, total,
+    )
+    return RAENScore(
+        R=0.0, A=0.0, E=e, N=0.0,
+        LSS=lss, total=total,
+        primary_layer=primary_layer,
+        layer_scores=layer_scores,
+    )

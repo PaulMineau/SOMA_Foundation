@@ -18,6 +18,7 @@ from soma.autoresearcher.query_gen import generate_followup_queries, generate_qu
 from soma.autoresearcher.scorer import (
     RAENScore,
     build_known_actions_embedding,
+    score_architecture_paper,
     score_paper,
 )
 from soma.autoresearcher.seed import BiomarkerProfile, load_profile
@@ -35,6 +36,7 @@ class ScoredPaper:
     extract: PaperExtract
     score: RAENScore
     soma_layer: str = "Proto-Self"
+    track: str = "health"  # "health" or "architecture"
 
 
 @dataclass
@@ -173,15 +175,15 @@ async def run_loop(
 
 async def run_overnight(
     profile: BiomarkerProfile,
+    max_health_iterations: int = 1,
 ) -> list[ScoredPaper]:
-    """Run the overnight loop: all 4 layer search arms + score + store + export.
+    """Run the overnight loop: health queries + layer search arms in parallel.
 
-    This is the core Phase 0 overnight loop:
-    1. Run all 4 Damasio layer search arms in parallel
-    2. Extract and score each paper
-    3. Classify to layers
-    4. Store to LanceDB
-    5. Export training corpus
+    Dual-track overnight loop:
+    Track 1 (Health): Profile-driven PubMed queries scored with RAEN
+    Track 2 (Architecture): Layer search arms scored for architectural relevance
+
+    Both tracks run concurrently, results merged and stored together.
     """
     from sentence_transformers import SentenceTransformer
 
@@ -190,16 +192,72 @@ async def run_overnight(
     from soma.autoresearcher.memory import store_findings
     from soma.autoresearcher.search_arms import run_all_search_arms
 
-    logger.info("=== SOMA Overnight Loop Starting ===")
+    logger.info("=== SOMA Overnight Loop Starting (dual-track) ===")
 
     embedder = SentenceTransformer("all-MiniLM-L6-v2")
     known_emb = build_known_actions_embedding(profile, embedder)
 
-    # 1. Run all search arms in parallel
+    all_scored: list[ScoredPaper] = []
+
+    # --- Track 1: Health (profile-driven queries, RAEN scoring) ---
+    logger.info("--- Track 1: Health Research ---")
+
+    health_state = LoopState()
+    for iteration in range(max_health_iterations):
+        logger.info("=== Health iteration %d/%d ===", iteration + 1, max_health_iterations)
+
+        if iteration == 0:
+            queries = await generate_queries(profile)
+        else:
+            queries = await generate_followup_queries(
+                profile, health_state.top_findings()
+            )
+
+        papers = await fetch_papers(queries)
+        new_papers = [p for p in papers if not health_state.is_seen(p)]
+        logger.info("Health: fetched %d papers (%d new)", len(papers), len(new_papers))
+
+        for paper in new_papers:
+            if not paper.abstract:
+                continue
+
+            try:
+                extract = await extract_paper(paper, profile)
+            except Exception:
+                logger.exception("Extraction failed for '%s'", paper.title[:50])
+                continue
+
+            raen = score_paper(paper, extract, profile, known_emb, embedder)
+
+            if raen.R < RELEVANCE_DISCARD_THRESHOLD:
+                continue
+
+            sp = ScoredPaper(paper=paper, extract=extract, score=raen, track="health")
+
+            try:
+                sp.soma_layer = await classify_layer(extract, raen)
+            except Exception:
+                logger.exception("Layer classification failed")
+                sp.soma_layer = "Proto-Self"
+
+            health_state.add(sp)
+            all_scored.append(sp)
+
+        if should_converge(health_state.score_history, iteration, max_health_iterations):
+            break
+
+    health_count = len([sp for sp in all_scored if sp.track == "health"])
+    logger.info("Health track complete: %d papers scored", health_count)
+
+    # --- Track 2: Architecture (layer search arms, architectural scoring) ---
+    logger.info("--- Track 2: Architecture Research ---")
+
     arm_results = await run_all_search_arms()
 
-    # 2. Extract and score all papers
-    all_scored: list[ScoredPaper] = []
+    # Collect PMIDs/DOIs already seen in health track to avoid duplicates
+    seen_ids: set[str] = set(health_state.seen_ids)
+
+    arch_min_score = 0.05  # Minimum architecture score to keep
 
     for layer_key, arm_result in arm_results.items():
         logger.info(
@@ -211,33 +269,44 @@ async def run_overnight(
             if not paper.abstract:
                 continue
 
+            # Skip papers already scored in health track
+            if paper.pmid and paper.pmid in seen_ids:
+                continue
+            if paper.doi and paper.doi in seen_ids:
+                continue
+
             try:
                 extract = await extract_paper(paper, profile)
             except Exception:
-                logger.exception(
-                    "Extraction failed for '%s'", paper.title[:50]
-                )
+                logger.exception("Extraction failed for '%s'", paper.title[:50])
                 continue
 
-            raen = score_paper(
-                paper, extract, profile, known_emb, embedder
+            arch_score = score_architecture_paper(paper, extract)
+
+            if arch_score.total < arch_min_score:
+                continue
+
+            sp = ScoredPaper(
+                paper=paper, extract=extract, score=arch_score, track="architecture"
             )
 
-            if raen.R < RELEVANCE_DISCARD_THRESHOLD:
-                continue
-
-            sp = ScoredPaper(paper=paper, extract=extract, score=raen)
-
-            # 3. Classify layer (using LSS first, then keyword/LLM fallback)
             try:
-                sp.soma_layer = await classify_layer(extract, raen)
+                sp.soma_layer = await classify_layer(extract, arch_score)
             except Exception:
                 logger.exception("Layer classification failed")
                 sp.soma_layer = "Proto-Self"
 
+            if paper.pmid:
+                seen_ids.add(paper.pmid)
+            if paper.doi:
+                seen_ids.add(paper.doi)
+
             all_scored.append(sp)
 
-    # 4. Store to LanceDB
+    arch_count = len([sp for sp in all_scored if sp.track == "architecture"])
+    logger.info("Architecture track complete: %d papers scored", arch_count)
+
+    # --- Store and export both tracks ---
     findings = [
         (sp.paper, sp.extract, sp.score, sp.soma_layer)
         for sp in all_scored
@@ -245,7 +314,6 @@ async def run_overnight(
     stored = store_findings(findings, embedder)
     logger.info("Stored %d findings to LanceDB", stored)
 
-    # 5. Export training corpus
     export_records: list[dict[str, Any]] = []
     for sp in all_scored:
         export_records.append({
@@ -263,19 +331,20 @@ async def run_overnight(
             "primary_layer_key": sp.score.primary_layer,
             "study_type": sp.paper.study_type,
             "year": sp.paper.year,
+            "track": sp.track,
         })
     exported = export_scored_papers(export_records)
     logger.info("Exported %d records to training corpus", exported)
 
     ranked = sorted(all_scored, key=lambda sp: sp.score.total, reverse=True)
 
-    # Summary by layer
+    # Summary
     layer_counts: dict[str, int] = {}
     for sp in all_scored:
         layer_counts[sp.soma_layer] = layer_counts.get(sp.soma_layer, 0) + 1
 
     logger.info("=== Overnight Loop Complete ===")
-    logger.info("Total papers scored: %d", len(all_scored))
+    logger.info("Health papers: %d, Architecture papers: %d", health_count, arch_count)
     logger.info("Papers by layer: %s", json.dumps(layer_counts, indent=2))
     if ranked:
         logger.info("Top score: %.3f", ranked[0].score.total)
@@ -283,37 +352,57 @@ async def run_overnight(
     return ranked
 
 
+def _print_paper(i: int, sp: ScoredPaper) -> None:
+    """Print a single paper entry."""
+    print(f"\n{i}. {sp.extract.intervention}")
+    if sp.track == "architecture":
+        print(f"   Score: {sp.score.total:.3f} "
+              f"(E={sp.score.E:.2f} LSS={sp.score.LSS:.2f})")
+    else:
+        print(f"   RAEN: {sp.score.total:.3f} "
+              f"(R={sp.score.R:.2f} A={sp.score.A:.2f} "
+              f"E={sp.score.E:.2f} N={sp.score.N:.2f} "
+              f"LSS={sp.score.LSS:.2f})")
+    print(f"   Evidence: {sp.paper.study_type}, {sp.paper.year}")
+    print(f"   SOMA layer: {sp.soma_layer}")
+    print(f"   Outcome: {sp.extract.outcome_measure}")
+    print(f"   Direction: {sp.extract.effect_direction}", end="")
+    if sp.extract.effect_size is not None:
+        print(f" (effect size: {sp.extract.effect_size}%)")
+    else:
+        print()
+    if not sp.extract.safe_for_profile:
+        print("   !! Safety flag — discuss with physician")
+    if sp.extract.conflicts_with_supplements:
+        print(
+            f"   Conflicts: {', '.join(sp.extract.conflicts_with_supplements)}"
+        )
+
+
 def print_briefing(ranked: list[ScoredPaper]) -> None:
-    """Print a simple text briefing to stdout."""
+    """Print a briefing to stdout, splitting health and architecture tracks."""
     if not ranked:
         print("No papers scored above threshold.")
         return
+
+    health = [sp for sp in ranked if sp.track == "health"]
+    arch = [sp for sp in ranked if sp.track == "architecture"]
 
     print("\n" + "=" * 60)
     print("SOMA AutoResearcher — Briefing")
     print("=" * 60)
 
-    top = ranked[:10]
-    for i, sp in enumerate(top, 1):
-        print(f"\n{i}. {sp.extract.intervention}")
-        print(f"   RAEN: {sp.score.total:.3f} "
-              f"(R={sp.score.R:.2f} A={sp.score.A:.2f} "
-              f"E={sp.score.E:.2f} N={sp.score.N:.2f} "
-              f"LSS={sp.score.LSS:.2f})")
-        print(f"   Evidence: {sp.paper.study_type}, {sp.paper.year}")
-        print(f"   SOMA layer: {sp.soma_layer}")
-        print(f"   Outcome: {sp.extract.outcome_measure}")
-        print(f"   Direction: {sp.extract.effect_direction}", end="")
-        if sp.extract.effect_size is not None:
-            print(f" (effect size: {sp.extract.effect_size}%)")
-        else:
-            print()
-        if not sp.extract.safe_for_profile:
-            print("   !! Safety flag — discuss with physician")
-        if sp.extract.conflicts_with_supplements:
-            print(
-                f"   Conflicts: {', '.join(sp.extract.conflicts_with_supplements)}"
-            )
+    if health:
+        print(f"\n### HEALTH INTERVENTIONS ({len(health)} papers)")
+        print("-" * 60)
+        for i, sp in enumerate(sorted(health, key=lambda s: s.score.total, reverse=True)[:10], 1):
+            _print_paper(i, sp)
+
+    if arch:
+        print(f"\n### ARCHITECTURE RESEARCH ({len(arch)} papers)")
+        print("-" * 60)
+        for i, sp in enumerate(sorted(arch, key=lambda s: s.score.total, reverse=True)[:10], 1):
+            _print_paper(i, sp)
 
     print("\n" + "-" * 60)
     print(
