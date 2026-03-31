@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.env
+.env.local
+data/lancedb/
+*.DS_Store
+.venv/

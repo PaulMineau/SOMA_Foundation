@@ -1,0 +1,81 @@
+{
+  "profile_id": "paul_2026_q1",
+  "updated": "2026-03-16",
+
+  "lab_values": {
+    "shbg_nmol_l": 78.0,
+    "homocysteine_umol_l": 11.2,
+    "vitamin_d_ng_ml": 22.0,
+    "free_testosterone_pg_ml": null,
+    "total_testosterone_ng_dl": null
+  },
+
+  "sleep": {
+    "device": "Fitbit Inspire 3",
+    "deep_sleep_minutes_avg": 90,
+    "sleep_efficiency_pct": null,
+    "cpap_compliance": "improving",
+    "apnea_diagnosis": true,
+    "ahi_treated": null
+  },
+
+  "demographics": {
+    "age": 50,
+    "sex": "male"
+  },
+
+  "conditions": [
+    "obstructive_sleep_apnea",
+    "elevated_shbg",
+    "borderline_hyperhomocysteinemia",
+    "vitamin_d_insufficiency",
+    "nicotine_cessation_active",
+    "alcohol_use_disorder_recovery",
+    "cannabis_cessation"
+  ],
+
+  "current_supplements": [
+    "D3_K2_5000IU",
+    "boron_3mg",
+    "thorne_super_EPA",
+    "methylated_B_complex"
+  ],
+
+  "current_medications": [],
+
+  "recovery_stage_months": 6,
+
+  "research_focus": [
+    "free_testosterone_optimization",
+    "SHBG_reduction",
+    "homocysteine_reduction",
+    "sleep_apnea_cardiovascular_risk",
+    "cardiovascular_longevity",
+    "neuroprotection"
+  ],
+
+  "known_interventions_acted_on": [
+    "vitamin_D_supplementation",
+    "EPA_supplementation",
+    "methylated_B12_supplementation",
+    "methylfolate_supplementation",
+    "boron_supplementation",
+    "exercise_running",
+    "CPAP_therapy",
+    "alcohol_cessation",
+    "cannabis_cessation",
+    "nicotine_cessation"
+  ],
+
+  "contraindications": [
+    "high_dose_testosterone_therapy_without_monitoring",
+    "stimulants_with_cardiovascular_risk",
+    "substances_with_addiction_potential"
+  ],
+
+  "risk_flags": {
+    "cardiovascular_risk": "moderate_elevated",
+    "recovery_sensitivity": true,
+    "note": "No interventions with addiction potential. Flag any stimulant-class compounds."
+  }
+}

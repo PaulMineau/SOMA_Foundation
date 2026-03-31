@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "soma"
+version = "0.1.0"
+description = "Sentient Observation & Memory Architecture — a self-constructing AI consciousness framework"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27,<1.0",
+    "python-dotenv>=1.0",
+    "lancedb>=0.13",
+    "sentence-transformers>=3.0",
+    "numpy>=1.26",
+    "streamlit>=1.38",
+    "scikit-learn>=1.5",
+    "scipy>=1.13",
+    "mypy>=1.11",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[project.scripts]
+soma-research = "soma.autoresearcher.run:main"
+
+[tool.mypy]
+strict = true
+packages = ["soma"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
