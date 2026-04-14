@@ -34,6 +34,9 @@ soma-anomaly = "soma.proto_self.anomaly_detector:main"
 soma-state = "soma.proto_self.state_classifier:main"
 soma-recommend = "soma.proto_self.recommender:main"
 soma-feedback = "soma.proto_self.feedback_logger:main"
+soma-daily-research = "soma.proto_self.research_agent:main"
+soma-review = "soma.proto_self.corpus_review:main"
+soma-profile = "soma.proto_self.soma_profile:main"
 
 [tool.setuptools.packages.find]
 include = ["soma*"]
