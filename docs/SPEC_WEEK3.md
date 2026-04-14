@@ -35,12 +35,12 @@ Post-run + HRV elevated
     → Creative peak. Best ideas come here.
     → New SOMA feature, school assignment, write to River
 
-Post-Zyn + RMSSD suppressed
+Poor sleep + RMSSD suppressed
     → Body is compensating. Don't push.
     → Light activity, something enjoyable, not demanding
 ```
 
-This is the recommendation engine you've always wanted to build at Vizio — pointed inward. You are your own customer.
+This is the recommendation engine you've always wanted to build at Microsoft — pointed inward. You are your own customer.
 
 ---
 
@@ -270,7 +270,7 @@ Paul's curated recommendation library. This is the seed. SOMA learns which entri
       "id": "act_001",
       "type": "activity",
       "title": "Morning run",
-      "why": "Keystone habit. Restores HRV within 90 min. Replaces cannabis dopamine.",
+      "why": "Keystone habit. Restores HRV within 90 min.",
       "tags": ["exercise", "restorative", "keystone"],
       "best_states": ["depleted", "recovering", "baseline"],
       "avoid_states": [],
@@ -754,8 +754,7 @@ These will feed the classifier once you have enough data per state:
 |---|---|
 | `morning_baseline` | baseline |
 | `post_run` | restored / peak |
-| `post_zyn` | depleted / recovering |
-| `nicotine_free_day` | baseline / restored |
+| `poor_sleep` | depleted / recovering |
 | `meditation` | restored |
 | `work_stress` | recovering / depleted |
 | `fight` | depleted |

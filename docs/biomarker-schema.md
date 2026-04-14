@@ -33,10 +33,7 @@
     "obstructive_sleep_apnea",
     "elevated_shbg",
     "borderline_hyperhomocysteinemia",
-    "vitamin_d_insufficiency",
-    "nicotine_cessation_active",
-    "alcohol_use_disorder_recovery",
-    "cannabis_cessation"
+    "vitamin_d_insufficiency"
   ],
   
   "current_supplements": [
@@ -66,10 +63,7 @@
     "methylfolate_supplementation",
     "boron_supplementation",
     "exercise_running",
-    "CPAP_therapy",
-    "alcohol_cessation",
-    "cannabis_cessation",
-    "nicotine_cessation"
+    "CPAP_therapy"
   ],
   
   "contraindications": [

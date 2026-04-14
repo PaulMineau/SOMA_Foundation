@@ -166,11 +166,10 @@ class TestAnomalies:
 
 
 class TestProbe:
-    def test_probe_placeholder(self, client: TestClient) -> None:
-        resp = client.post("/probe", json={"message": "How am I doing?"})
+    def test_probe_no_anomaly(self, client: TestClient) -> None:
+        resp = client.post("/probe", json={"generate_only": True})
         data = resp.json()
-        assert data["status"] == "not_yet_implemented"
-        assert data["your_message"] == "How am I doing?"
+        assert data["status"] == "no_anomaly"
 
 
 class TestSessions:

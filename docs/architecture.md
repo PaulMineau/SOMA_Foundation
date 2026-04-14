@@ -54,9 +54,9 @@ class BiomarkerProfile:
     # Context
     age: int                     # 50
     sex: str                     # "male"
-    conditions: list[str]        # ["sleep_apnea", "nicotine_cessation"]
+    conditions: list[str]        # ["sleep_apnea", "elevated_shbg"]
     current_supplements: list[str]  # ["D3_K2", "boron", "EPA", "methylated_B_complex"]
-    recovery_stage_months: int   # months since last alcohol/cannabis use
+    recovery_stage_months: int   # months since condition onset
     
     # Meta
     research_focus: list[str]    # ["cardiovascular", "testosterone", "sleep", "homocysteine"]
@@ -66,7 +66,7 @@ class BiomarkerProfile:
         return (
             f"50-year-old male with sleep apnea, elevated SHBG {self.shbg_nmol_l} nmol/L, "
             f"borderline homocysteine {self.homocysteine_umol_l} umol/L, insufficient vitamin D, "
-            f"in early recovery from alcohol and cannabis, nicotine cessation, CPAP user. "
+            f"CPAP user. "
             f"Research focus: {', '.join(self.research_focus)}."
         )
 ```

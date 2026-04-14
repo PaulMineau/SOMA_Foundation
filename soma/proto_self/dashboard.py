@@ -149,6 +149,65 @@ if model:
 
 st.divider()
 
+# ── Probe Panel ──────────────────────────────────────────────────────────────
+
+st.subheader("SOMA Probe")
+
+try:
+    _anomaly_conn = sqlite3.connect(DB_PATH)
+    _pending = _anomaly_conn.execute(
+        "SELECT id, detected_at, metric, value, deviation "
+        "FROM anomalies WHERE acknowledged = 0 "
+        "ORDER BY detected_at DESC LIMIT 1"
+    ).fetchall()
+    _anomaly_conn.close()
+
+    if _pending:
+        _a = _pending[0]
+        st.warning(
+            f"Anomaly detected: **{_a[2].upper()}** = {_a[3]} "
+            f"({_a[4]:+.1f}s) at {str(_a[1])[11:16]}"
+        )
+        st.info("Run: `python -m soma.proto_self.probe_interface` in terminal")
+    else:
+        st.success("No pending anomalies.")
+except Exception:
+    st.info("Anomaly data unavailable.")
+
+st.divider()
+
+# ── Memory Timeline ──────────────────────────────────────────────────────────
+
+st.subheader("Memory Timeline")
+
+try:
+    from soma.proto_self.autobiographical_store import get_recent_memories as _get_memories
+
+    _memories = _get_memories(n=5)
+    if not _memories:
+        st.info("No autobiographical memories yet. Run a probe session to begin.")
+    else:
+        for _mem in _memories:
+            _ts = str(_mem.get("timestamp", ""))[:16].replace("T", " ")
+            _state = str(_mem.get("body_state", "")).upper()
+            _metric = str(_mem.get("metric", "")).upper()
+            _dev = _mem.get("deviation", 0)
+            with st.expander(f"[{_ts}] {_state} — {_metric} {_dev:+.1f}s"):
+                st.write(f"**SOMA asked:** {_mem.get('probe_text', '')}")
+                st.write(f"**Response:** {_mem.get('response_text', '')}")
+                _entities = _mem.get("entities", "[]")
+                if isinstance(_entities, str):
+                    _entities = json.loads(_entities)
+                if _entities:
+                    st.write(f"**Noted:** {', '.join(str(e) for e in _entities[:5])}")
+                _val = _mem.get("emotion_valence", 0)
+                _vlabel = "positive" if _val > 0.1 else "negative" if _val < -0.1 else "neutral"
+                st.caption(f"Valence: {_vlabel} ({_val:+.2f})")
+except Exception as _e:
+    st.info(f"Memory timeline unavailable: {_e}")
+
+st.divider()
+
 # ── Anomalies ─────────────────────────────────────────────────────────────────
 
 st.subheader("Anomaly Log")

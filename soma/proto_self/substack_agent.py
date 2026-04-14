@@ -152,7 +152,7 @@ async def classify_article(entry: dict, profile: dict) -> dict | None:
 - Interests: causal inference, consciousness, parenting, longevity, AI
 - Values: upstream causation, compound over deplete, compassion
 - Current state: {state.upper()}
-- Avoids: glorification of substances, outrage loops, hustle culture
+- Avoids: outrage loops, hustle culture
 
 ## Article
 Title: {entry['title']}

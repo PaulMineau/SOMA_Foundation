@@ -488,7 +488,7 @@ python baseline_model.py
 
 ### Ongoing
 - Run `baseline_model.py` weekly as more sessions accumulate — model improves
-- Label sessions honestly: `post_run`, `work_stress`, `meditation`, `post_zyn`, `post_nicotine_free`
+- Label sessions honestly: `post_run`, `work_stress`, `meditation`, `poor_sleep`
 - Labels become training signal. The more honest the labels, the smarter SOMA gets.
 
 ### Suggested session labels
@@ -499,8 +499,7 @@ python baseline_model.py
 | `meditation` | During or immediately after Tonglen |
 | `work_stress` | High-pressure work periods |
 | `commute` | Driving or transit |
-| `post_zyn` | After nicotine — important recovery signal |
-| `nicotine_free_day` | Clean days — establishes recovery baseline |
+| `poor_sleep` | After a bad night — captures depletion |
 | `fight` | After conflict — captures stress signature |
 | `river_time` | Playing with River — what does joy look like? |
 

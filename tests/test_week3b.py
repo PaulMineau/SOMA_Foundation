@@ -141,7 +141,7 @@ class TestResearchAgent:
                 "age": 50,
                 "location": "Duvall, WA",
                 "practices": ["meditation"],
-                "quitting": ["nicotine"],
+                "quitting": [],
                 "interests": ["consciousness research"],
                 "values": ["compassion"],
                 "reading_now": ["Damasio"],

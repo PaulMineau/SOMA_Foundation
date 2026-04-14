@@ -39,6 +39,8 @@ soma-daily-research = "soma.proto_self.research_agent:main"
 soma-review = "soma.proto_self.corpus_review:main"
 soma-substack = "soma.proto_self.substack_agent:main"
 soma-articles = "soma.proto_self.article_review:main"
+soma-probe = "soma.proto_self.probe_interface:main"
+soma-narrative = "soma.proto_self.narrative_builder:main"
 soma-profile = "soma.proto_self.soma_profile:main"
 
 [tool.setuptools.packages.find]

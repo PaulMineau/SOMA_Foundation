@@ -252,7 +252,7 @@ async def classify_article(entry, article_text, profile, session):
 - Interests: causal inference, consciousness, parenting (infant son River), longevity, AI
 - Values: upstream causation, compound over deplete, compassion
 - Current physiological state: {state.upper()}
-- Avoids: glorification of substances, outrage loops, hustle culture
+- Avoids: outrage loops, hustle culture
 
 ## Article
 Title: {entry['title']}

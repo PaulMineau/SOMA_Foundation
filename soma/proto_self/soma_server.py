@@ -64,8 +64,9 @@ class ContextTag(BaseModel):
 
 
 class ProbeRequest(BaseModel):
-    message: str
-    include_recent_hours: int | None = 4
+    message: str | None = None
+    anomaly_id: int | None = None
+    generate_only: bool = False
 
 
 # ── DB + anomaly helpers ────────────────────────────────────────────────────
@@ -345,10 +346,50 @@ def list_sessions(limit: int = 10) -> list[dict[str, Any]]:
 
 
 @app.post("/probe")
-def probe(req: ProbeRequest) -> dict[str, Any]:
-    """Conversational probe placeholder (Week 4)."""
+async def probe(req: ProbeRequest) -> dict[str, Any]:
+    """Generate a probe for an anomaly. Optionally store response as memory."""
+    from soma.proto_self.probe_generator import generate_probe
+    from soma.proto_self.memory_writer import write_memory
+
+    conn = get_connection(DB_PATH)
+    if req.anomaly_id:
+        row = conn.execute(
+            "SELECT id, detected_at, metric, value, baseline, deviation "
+            "FROM anomalies WHERE id = ?",
+            (req.anomaly_id,),
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT id, detected_at, metric, value, baseline, deviation "
+            "FROM anomalies WHERE acknowledged = 0 "
+            "ORDER BY detected_at DESC LIMIT 1"
+        ).fetchone()
+    conn.close()
+
+    if not row:
+        return {"status": "no_anomaly", "message": "No unacknowledged anomalies found"}
+
+    anomaly = dict(row)
+    probe_text, state_info, similar_memories = await generate_probe(anomaly)
+
+    if req.generate_only or not req.message:
+        return {
+            "status": "probe_generated",
+            "probe": probe_text,
+            "anomaly": anomaly,
+            "state": state_info,
+            "similar_memories_found": len(similar_memories),
+        }
+
+    memory_id, extracted = await write_memory(
+        anomaly, state_info, probe_text, req.message
+    )
+
     return {
-        "status": "not_yet_implemented",
-        "message": "Conversational probe arrives in Week 4.",
-        "your_message": req.message,
+        "status": "memory_stored",
+        "probe": probe_text,
+        "memory_id": memory_id,
+        "entities_extracted": extracted.get("entities", []),
+        "emotion_valence": extracted.get("emotion_valence", 0),
+        "primary_topic": extracted.get("primary_topic", "other"),
     }

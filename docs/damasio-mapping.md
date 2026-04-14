@@ -42,7 +42,7 @@ Source text: Damasio, A. (1999). *The Feeling of What Happens: Body and Emotion 
 **Examples**:
 - "Magnesium improves sleep onset and morning alertness" → Core Consciousness
 - "Vitamin D affects circadian gene expression" → Core Consciousness
-- "Morning cortisol spike from nicotine cessation" → Core Consciousness
+- "Morning cortisol spike from sleep disruption" → Core Consciousness
 
 ---
 
@@ -73,11 +73,11 @@ Source text: Damasio, A. (1999). *The Feeling of What Happens: Body and Emotion 
 - Social behavior and bonding
 - Capacity for presence in relationships
 - Stress response in social contexts
-- Recovery from addiction (relational repair)
+- Recovery and relational repair
 
 **Examples**:
 - "Low free testosterone associated with depression and social withdrawal" → Relational Self
-- "Recovery from alcohol use improves relational attunement" → Relational Self
+- "Improved sleep quality improves relational attunement" → Relational Self
 - "Sleep deprivation reduces emotional empathy" → Relational Self
 
 ---

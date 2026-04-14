@@ -77,7 +77,6 @@ def build_research_prompt(profile: dict, topic: str) -> str:
 ## Patient Profile
 - Age {identity['age']}, {identity['location']}, data scientist and AI researcher
 - Practices: {', '.join(identity['practices'])}
-- Quitting: {', '.join(identity['quitting'])} (important: nothing that glorifies substances)
 - Reading: {', '.join(identity['reading_now'])}
 - Movie taste: redemption arcs, meaning, human connection ({', '.join(identity['movies_loved'])})
 - Values: {', '.join(identity['values'])}

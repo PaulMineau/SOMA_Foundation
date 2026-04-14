@@ -154,7 +154,7 @@ def build_profile():
             "location": "Duvall, WA",
             "sleep_condition": "sleep apnea, CPAP user",
             "practices": ["Tibetan Tonglen meditation", "running", "kettlebell"],
-            "quitting": ["nicotine", "THC"],
+            "quitting": [],
             "interests": [
                 "causal inference", "consciousness research", "AI architecture",
                 "recommendation systems", "Buddhist philosophy", "parenting",
@@ -299,7 +299,6 @@ def build_research_prompt(profile, topic):
 ## Paul's Profile
 - Age 50, Duvall WA, data scientist and AI researcher
 - Practices: Tibetan Tonglen meditation, running, kettlebell training
-- Quitting: nicotine and THC (important: nothing that glorifies substances)
 - Reading: Damasio's consciousness work, Pearl's causal inference
 - Loves: upstream thinking, compassion, building things that matter, being present with his infant son River
 - Movie taste: redemption arcs, meaning, human connection (Soul, Shawshank, A Man Called Otto)

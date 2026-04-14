@@ -421,7 +421,7 @@ SOMA is the R&D engine. Resonetta is the commercial and community vehicle.
 1. **Be your own customer** — Paul is SOMA's first research instance. Every decision should solve a real problem Paul has, not an imagined future user's problem.
 2. **Proto-Self first** — without Layer 1, everything above is floating. Don't build the roof before the foundation.
 3. **Demo-driven milestones** — SOMA-Cardio two-tab working demo is the first visible finish line. Make it real before making it comprehensive.
-4. **Champion/challenger on every model** — mirror the AutoResearcher pattern from Vizio. Nothing ships without beating the incumbent.
+4. **Champion/challenger on every model** — mirror the AutoResearcher pattern from Andrej Kaparthy. Nothing ships without beating the incumbent.
 5. **The overnight loop is the thesis** — a system that reads science and uses it to improve its own architecture is philosophically interesting regardless of whether it achieves consciousness. That's the contribution.
 6. **Local-first, always** — your health data, your family's data, your son's face. Nothing goes to the cloud that doesn't need to.
 

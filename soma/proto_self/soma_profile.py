@@ -135,7 +135,7 @@ def build_profile(
             "location": "Duvall, WA",
             "sleep_condition": "sleep apnea, CPAP user",
             "practices": ["Tibetan Tonglen meditation", "running", "kettlebell"],
-            "quitting": ["nicotine", "THC"],
+            "quitting": [],
             "interests": [
                 "causal inference", "consciousness research", "AI architecture",
                 "recommendation systems", "Buddhist philosophy", "parenting",
