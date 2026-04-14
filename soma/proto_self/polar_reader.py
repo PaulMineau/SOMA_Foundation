@@ -115,20 +115,24 @@ def parse_hr_measurement(data: bytearray) -> HRSample:
 async def discover_polar(timeout: float = 10.0) -> BLEDevice | None:
     """Scan for a Polar device via BLE.
 
-    Returns the first device with 'Polar' in its name, or None.
+    Uses find_device_by_filter which keeps the scanner context alive,
+    producing a device reference that connects reliably on macOS.
     """
     logger.info("Scanning for Polar devices (%.0fs timeout)...", timeout)
-    devices = await BleakScanner.discover(timeout=timeout)
 
-    for device in devices:
-        if device.name and "Polar" in device.name:
-            logger.info(
-                "Found Polar device: %s (%s)", device.name, device.address
-            )
-            return device
+    device = await BleakScanner.find_device_by_filter(
+        lambda d, _adv: d.name is not None and "Polar" in d.name,
+        timeout=timeout,
+    )
 
-    logger.warning("No Polar device found")
-    return None
+    if device is not None:
+        logger.info(
+            "Found Polar device: %s (%s)", device.name, device.address
+        )
+    else:
+        logger.warning("No Polar device found")
+
+    return device
 
 
 async def read_battery(client: BleakClient) -> int | None:
@@ -158,16 +162,7 @@ async def stream_hr(
     Returns:
         PolarSession with all collected data.
     """
-    if device is None:
-        device = await discover_polar()
-        if device is None:
-            raise RuntimeError("No Polar device found. Is the chest strap on?")
-
-    session = PolarSession(
-        start_time=time.time(),
-        device_name=device.name or "unknown",
-        device_address=device.address,
-    )
+    session = PolarSession(start_time=time.time())
 
     def _notification_handler(_sender: int, data: bytearray) -> None:
         sample = parse_hr_measurement(data)
@@ -188,12 +183,64 @@ async def stream_hr(
                 [f"{rr:.0f}" for rr in sample.rr_intervals],
             )
 
+    # On macOS CoreBluetooth, the scanner must stay alive during connection.
+    # We use the scanner context manager to discover + connect in one flow,
+    # which keeps the internal CBPeripheral reference valid.
+    if device is None:
+        logger.info("Scanning for Polar device...")
+        scanner = BleakScanner()
+        device = await scanner.find_device_by_filter(
+            lambda d, _adv: d.name is not None and "Polar" in d.name,
+            timeout=15.0,
+        )
+        if device is None:
+            raise RuntimeError("No Polar device found. Is the chest strap on?")
+
+    session.device_name = device.name or "unknown"
+    session.device_address = device.address
+
     logger.info(
         "Connecting to %s (%s) for %.0fs...",
         session.device_name, session.device_address, duration_seconds,
     )
 
-    async with BleakClient(device.address) as client:
+    # Connect with retries — CoreBluetooth can be slow/flaky.
+    # Create a fresh BleakClient per attempt with the BLEDevice object.
+    max_retries = 3
+    client: BleakClient | None = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            client = BleakClient(device, timeout=30.0)
+            await client.connect()
+            logger.info("Connected on attempt %d", attempt)
+            break
+        except (TimeoutError, Exception) as e:
+            if client and client.is_connected:
+                await client.disconnect()
+            if attempt < max_retries:
+                logger.warning(
+                    "Connection attempt %d/%d failed (%s), retrying...",
+                    attempt, max_retries, type(e).__name__,
+                )
+                # Re-discover to get a fresh peripheral reference
+                device = await BleakScanner.find_device_by_filter(
+                    lambda d, _adv: d.name is not None and "Polar" in d.name,
+                    timeout=10.0,
+                )
+                if device is None:
+                    raise RuntimeError("Lost Polar device during retry")
+                await asyncio.sleep(1.0)
+            else:
+                raise RuntimeError(
+                    f"Failed to connect to {session.device_name} after "
+                    f"{max_retries} attempts. Try: 1) Close Polar Beat/Flow apps, "
+                    f"2) System Settings > Bluetooth > Forget the Polar device, "
+                    f"3) Make sure strap is wet with skin contact."
+                ) from e
+
+    assert client is not None
+
+    try:
         session.battery_level = await read_battery(client)
 
         await client.start_notify(HR_MEASUREMENT_UUID, _notification_handler)
@@ -202,6 +249,8 @@ async def stream_hr(
         await asyncio.sleep(duration_seconds)
 
         await client.stop_notify(HR_MEASUREMENT_UUID)
+    finally:
+        await client.disconnect()
 
     logger.info(
         "Session complete: %d samples, %.0fs, %d RR intervals",
