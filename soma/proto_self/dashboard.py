@@ -185,6 +185,47 @@ except Exception as e:
 
 st.divider()
 
+# ── Reading Queue ────────────────────────────────────────────────────────────
+
+st.subheader("Reading Queue")
+
+try:
+    from soma.proto_self.substack_agent import QUEUE_PATH
+    from soma.proto_self.state_classifier import classify_state as _classify
+
+    queue_data: list[dict] = []
+    try:
+        with open(QUEUE_PATH) as _f:
+            queue_data = json.load(_f)
+    except FileNotFoundError:
+        pass
+
+    _current_state = _classify().get("state", "unknown")
+    readable = [
+        a for a in queue_data
+        if (a.get("approved") or a.get("auto_surfaced"))
+        and not a.get("read")
+        and _current_state in a.get("best_states", [_current_state])
+        and _current_state not in a.get("avoid_states", [])
+    ]
+    readable.sort(key=lambda x: x.get("raen_total", 0), reverse=True)
+
+    if not readable:
+        st.info(f"No articles matched for current state: {_current_state.upper()}")
+    else:
+        st.write(f"Showing {len(readable)} articles for state: **{_current_state.upper()}**")
+        for a in readable[:5]:
+            auto = "+" if a.get("auto_surfaced") else ""
+            with st.expander(f"{auto} {a.get('title', '?')} — {a.get('newsletter', '?')} (~{a.get('duration_min', '?')} min)"):
+                st.write(a.get("key_insight", a.get("why", "")))
+                st.write(f"**Best for:** {', '.join(a.get('best_states', []))}")
+                if a.get("url"):
+                    st.markdown(f"[Read article]({a['url']})")
+except Exception as e:
+    st.info(f"Reading queue unavailable: {e}")
+
+st.divider()
+
 # ── Sessions ──────────────────────────────────────────────────────────────────
 
 st.subheader("Recent Sessions")

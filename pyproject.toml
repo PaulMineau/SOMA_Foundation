@@ -18,6 +18,7 @@ dependencies = [
     "scipy>=1.13",
     "bleak>=0.22",
     "fastapi>=0.115",
+    "feedparser>=6.0",
     "uvicorn>=0.30",
     "mypy>=1.11",
     "pytest>=8.0",
@@ -36,6 +37,8 @@ soma-recommend = "soma.proto_self.recommender:main"
 soma-feedback = "soma.proto_self.feedback_logger:main"
 soma-daily-research = "soma.proto_self.research_agent:main"
 soma-review = "soma.proto_self.corpus_review:main"
+soma-substack = "soma.proto_self.substack_agent:main"
+soma-articles = "soma.proto_self.article_review:main"
 soma-profile = "soma.proto_self.soma_profile:main"
 
 [tool.setuptools.packages.find]

@@ -14,6 +14,7 @@ data/soma_cardio.db
 data/rr_export_*.csv
 data/baseline_model.json
 data/corpus_additions.json
+data/article_queue.json
 logs/
 *.DS_Store
 .venv/
