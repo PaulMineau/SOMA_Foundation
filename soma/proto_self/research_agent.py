@@ -227,12 +227,18 @@ async def run_research(
 
     print(f"Research complete")
     print(f"   Found: {len(candidates)} candidates")
-    print(f"   Staged for review: {len(new_additions)} (RAEN >= 0.65)")
+    print(f"   Staged for review: {len(new_additions)} (RAEN >= 0.55)")
     print(f"   Tokens used: {tokens}\n")
 
-    for c in new_additions:
-        print(f"  [{c['type'].upper()}] {c['title']} — RAEN: {c['raen_total']}")
-        print(f"    {c['why']}\n")
+    print("All candidates scored:")
+    for c in scored:
+        raen = c.get("raen", {})
+        staged = "STAGED" if c["recommended"] else "      "
+        print(f"  {staged} [{c.get('type', '?').upper()}] {c.get('title', '?')} — RAEN: {c['raen_total']}")
+        print(f"         R={raen.get('relevance', 0)} A={raen.get('actionability', 0)} "
+              f"E={raen.get('evidence', 0)} N={raen.get('novelty', 0)}")
+        print(f"         tags: {c.get('tags', [])}")
+    print()
 
     return new_additions
 

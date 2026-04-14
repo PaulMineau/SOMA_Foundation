@@ -9,6 +9,30 @@ Adapted from SOMA AutoResearcher's RAEN scorer for the recommendation corpus.
 from __future__ import annotations
 
 
+def _fuzzy_tag_overlap(candidate_tags: set[str], interest_tags: set[str]) -> int:
+    """Count tag matches allowing substring overlap.
+
+    Exact match: "consciousness research" == "consciousness research" -> 1
+    Substring: "neuroscience" overlaps with "consciousness research" -> 0
+    Word overlap: "AI" in "AI architecture" -> 1
+    """
+    count = 0
+    for ctag in candidate_tags:
+        ctag_lower = ctag.lower()
+        ctag_words = set(ctag_lower.split())
+        for itag in interest_tags:
+            itag_lower = itag.lower()
+            itag_words = set(itag_lower.split())
+            # Exact match, substring match, or word overlap
+            if (ctag_lower == itag_lower
+                    or ctag_lower in itag_lower
+                    or itag_lower in ctag_lower
+                    or ctag_words & itag_words):
+                count += 1
+                break
+    return count
+
+
 def score_candidate(candidate: dict, profile: dict) -> dict:
     """Score a single research candidate against the profile.
 
@@ -19,7 +43,7 @@ def score_candidate(candidate: dict, profile: dict) -> dict:
     # Relevance — does this match interests and current state?
     interest_tags = set(profile["identity"]["interests"])
     candidate_tags = set(candidate.get("tags", []))
-    tag_overlap = len(interest_tags & candidate_tags)
+    tag_overlap = _fuzzy_tag_overlap(candidate_tags, interest_tags)
     state_match = profile["current_state"]["state"] in candidate.get("best_states", [])
     scores["relevance"] = min(10, tag_overlap * 2 + (4 if state_match else 0))
 
@@ -31,11 +55,19 @@ def score_candidate(candidate: dict, profile: dict) -> dict:
     scores["actionability"] = 0 if blocked else min(10, max(4, 10 - duration // 30))
 
     # Evidence — has this type worked before in feedback?
+    # Base score of 4 when no feedback exists (benefit of the doubt for new systems).
+    # As feedback accumulates, evidence score is earned from actual outcomes.
     worked_types = [w["type"] for w in profile.get("what_worked", [])]
     worked_titles = [w["title"] for w in profile.get("what_worked", [])]
-    type_worked = worked_types.count(candidate.get("type", ""))
-    title_bonus = 3 if candidate.get("title") in worked_titles else 0
-    scores["evidence"] = min(10, type_worked * 3 + title_bonus)
+    has_any_feedback = len(worked_types) > 0 or len(profile.get("what_didnt_work", [])) > 0
+
+    if has_any_feedback:
+        type_worked = worked_types.count(candidate.get("type", ""))
+        title_bonus = 3 if candidate.get("title") in worked_titles else 0
+        scores["evidence"] = min(10, type_worked * 3 + title_bonus)
+    else:
+        # No feedback yet — give a neutral base score
+        scores["evidence"] = 4
 
     # Novelty — is this new to the corpus?
     existing = profile.get("existing_corpus", [])
@@ -49,7 +81,7 @@ def score_candidate(candidate: dict, profile: dict) -> dict:
         **candidate,
         "raen": scores,
         "raen_total": normalized,
-        "recommended": normalized >= 0.65,
+        "recommended": normalized >= 0.55,
     }
 
 
