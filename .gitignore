@@ -10,5 +10,7 @@ build/
 data/lancedb/
 data/patient_*.json
 data/training_data.jsonl
+data/soma_cardio.db
+data/rr_export_*.csv
 *.DS_Store
 .venv/
