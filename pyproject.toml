@@ -16,6 +16,7 @@ dependencies = [
     "streamlit>=1.38",
     "scikit-learn>=1.5",
     "scipy>=1.13",
+    "bleak>=0.22",
     "mypy>=1.11",
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -23,6 +24,7 @@ dependencies = [
 
 [project.scripts]
 soma-research = "soma.autoresearcher.run:main"
+soma-polar = "soma.proto_self.run:main"
 
 [tool.mypy]
 strict = true
