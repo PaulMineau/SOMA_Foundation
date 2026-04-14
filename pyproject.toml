@@ -31,6 +31,12 @@ soma-logger = "soma.proto_self.polar_logger:main"
 soma-monitor = "soma.proto_self.monitor:main"
 soma-baseline = "soma.proto_self.baseline_model:main"
 soma-anomaly = "soma.proto_self.anomaly_detector:main"
+soma-state = "soma.proto_self.state_classifier:main"
+soma-recommend = "soma.proto_self.recommender:main"
+soma-feedback = "soma.proto_self.feedback_logger:main"
+
+[tool.setuptools.packages.find]
+include = ["soma*"]
 
 [tool.mypy]
 strict = true

@@ -160,6 +160,31 @@ else:
 
 st.divider()
 
+# ── Recommendations ──────────────────────────────────────────────────────────
+
+st.subheader("SOMA Recommends")
+
+try:
+    from soma.proto_self.recommender import get_recommendations, log_recommendation
+
+    if st.button("Get Recommendations"):
+        result = get_recommendations(n=3)
+        rec_state = result["state"]
+
+        st.write(f"**Current state:** {rec_state['state'].upper()} — {rec_state['reason']}")
+
+        for rec in result["recommendations"]:
+            with st.expander(f"[{rec['type'].upper()}] {rec['title']} (~{rec['duration_min']} min)"):
+                st.write(rec["why"])
+                st.write(f"Tags: {', '.join(rec.get('tags', []))}")
+                if st.button(f"I did this", key=f"did_{rec['id']}"):
+                    log_recommendation(rec["id"], rec["title"], rec["type"], rec_state)
+                    st.success("Logged! Run feedback_logger to rate the outcome.")
+except Exception as e:
+    st.info(f"Recommendations unavailable: {e}")
+
+st.divider()
+
 # ── Sessions ──────────────────────────────────────────────────────────────────
 
 st.subheader("Recent Sessions")
