@@ -29,6 +29,8 @@ soma-research = "soma.autoresearcher.run:main"
 soma-polar = "soma.proto_self.run:main"
 soma-logger = "soma.proto_self.polar_logger:main"
 soma-monitor = "soma.proto_self.monitor:main"
+soma-baseline = "soma.proto_self.baseline_model:main"
+soma-anomaly = "soma.proto_self.anomaly_detector:main"
 
 [tool.mypy]
 strict = true

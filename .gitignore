@@ -12,5 +12,6 @@ data/patient_*.json
 data/training_data.jsonl
 data/soma_cardio.db
 data/rr_export_*.csv
+data/baseline_model.json
 *.DS_Store
 .venv/
