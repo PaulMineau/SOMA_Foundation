@@ -82,42 +82,119 @@ st.title("SOMA — Core Consciousness")
 model = load_model()
 df = get_recent_rr()
 
-if df.empty:
-    st.warning("No RR data found. Start a session: python -m soma.proto_self.polar_logger morning_baseline")
+# Clean and compute current Polar window (may be empty if no strap on)
+current_rhr = None
+current_rmssd = None
+if not df.empty:
+    clean = clean_rr(df["rr_ms"].tolist())
+    current_rhr = compute_rhr(clean)
+    current_rmssd = compute_rmssd(clean)
+
+# ── Fitbit Overnight Data ────────────────────────────────────────────────────
+
+_fb_data = None
+_fb_trends = None
+try:
+    from soma.proto_self.fitbit.fitbit_dashboard import (
+        get_today_fitbit,
+        get_recent_fitbit_days,
+        get_fitbit_trends,
+    )
+    _fb_data = get_today_fitbit()
+    _fb_trends = get_fitbit_trends(days=7)
+except Exception:
+    pass
+
+if _fb_data:
+    st.subheader("Overnight Recovery (Fitbit)")
+
+    fc1, fc2, fc3, fc4, fc5 = st.columns(5)
+    with fc1:
+        recovery = _fb_data.get("recovery_score", 0)
+        st.metric("Recovery", f"{recovery}/10")
+    with fc2:
+        overnight_hrv = _fb_data.get("hrv_rmssd", 0)
+        st.metric("Overnight HRV", f"{overnight_hrv:.0f} ms" if overnight_hrv else "---")
+    with fc3:
+        sleep_min = _fb_data.get("sleep_duration_min", 0)
+        st.metric("Sleep", f"{sleep_min // 60}h {sleep_min % 60}m")
+    with fc4:
+        deep = _fb_data.get("deep_sleep_min", 0)
+        st.metric("Deep Sleep", f"{deep} min")
+    with fc5:
+        spo2 = _fb_data.get("spo2_avg")
+        st.metric("SpO2", f"{spo2:.1f}%" if spo2 else "---")
+
+    # Second row: activity + trends
+    fc6, fc7, fc8, fc9 = st.columns(4)
+    with fc6:
+        rhr = _fb_data.get("resting_hr", 0)
+        st.metric("Resting HR", f"{rhr} bpm" if rhr else "---")
+    with fc7:
+        steps = _fb_data.get("steps", 0)
+        st.metric("Steps", f"{steps:,}")
+    with fc8:
+        eff = _fb_data.get("sleep_efficiency")
+        st.metric("Sleep Efficiency", f"{eff}%" if eff else "---")
+    with fc9:
+        if _fb_trends and "recovery_trend" in _fb_trends:
+            trend = _fb_trends["recovery_trend"]
+            delta = _fb_trends.get("recovery_delta", 0)
+            st.metric("7-Day Trend", trend.capitalize(), delta=f"{delta:+.1f}")
+        else:
+            st.metric("7-Day Trend", "---")
+
+    # Weekly chart
+    try:
+        _fb_week = get_recent_fitbit_days(n=7)
+        if _fb_week and len(_fb_week) > 1:
+            import pandas as _pd
+            _fb_df = _pd.DataFrame(list(reversed(_fb_week)))
+            _fb_df = _fb_df[_fb_df["date"] != "2026-01-01"]
+            if not _fb_df.empty:
+                st.subheader("7-Day Recovery + Sleep")
+                chart_cols = ["date", "recovery_score", "deep_sleep_min", "hrv_rmssd"]
+                chart_df = _fb_df[chart_cols].set_index("date")
+                chart_df.columns = ["Recovery (0-10)", "Deep Sleep (min)", "HRV (ms)"]
+                st.line_chart(chart_df)
+    except Exception:
+        pass
+
+    st.divider()
+
+# ── Polar H10 Live Metrics ───────────────────────────────────────────────────
+
+if current_rhr or current_rmssd:
+    st.subheader("Live (Polar H10)")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Heart Rate", f"{current_rhr} bpm" if current_rhr else "---")
+
+    with col2:
+        st.metric("RMSSD", f"{current_rmssd} ms" if current_rmssd else "---")
+
+    with col3:
+        if model and current_rhr and model["rhr"]["std"] > 0:
+            rhr_dev = round((current_rhr - model["rhr"]["mean"]) / model["rhr"]["std"], 1)
+            delta_bpm = round(current_rhr - model["rhr"]["mean"], 1)
+            st.metric("RHR vs Baseline", f"{rhr_dev:+.1f}s", delta=f"{delta_bpm:+.1f} bpm")
+        else:
+            st.metric("RHR vs Baseline", "No model yet")
+
+    with col4:
+        if model and current_rmssd and model["rmssd"]["std"] > 0:
+            rmssd_dev = round((current_rmssd - model["rmssd"]["mean"]) / model["rmssd"]["std"], 1)
+            delta_ms = round(current_rmssd - model["rmssd"]["mean"], 1)
+            st.metric("RMSSD vs Baseline", f"{rmssd_dev:+.1f}s", delta=f"{delta_ms:+.1f} ms")
+        else:
+            st.metric("RMSSD vs Baseline", "No model yet")
+
+    st.divider()
+elif not _fb_data:
+    st.warning("No data yet. Start a Polar session or sync Fitbit data.")
     st.stop()
-
-# Clean and compute current window
-clean = clean_rr(df["rr_ms"].tolist())
-current_rhr = compute_rhr(clean)
-current_rmssd = compute_rmssd(clean)
-
-# ── Top metrics ───────────────────────────────────────────────────────────────
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric("Heart Rate", f"{current_rhr} bpm" if current_rhr else "---")
-
-with col2:
-    st.metric("RMSSD", f"{current_rmssd} ms" if current_rmssd else "---")
-
-with col3:
-    if model and current_rhr and model["rhr"]["std"] > 0:
-        rhr_dev = round((current_rhr - model["rhr"]["mean"]) / model["rhr"]["std"], 1)
-        delta_bpm = round(current_rhr - model["rhr"]["mean"], 1)
-        st.metric("RHR vs Baseline", f"{rhr_dev:+.1f}s", delta=f"{delta_bpm:+.1f} bpm")
-    else:
-        st.metric("RHR vs Baseline", "No model yet")
-
-with col4:
-    if model and current_rmssd and model["rmssd"]["std"] > 0:
-        rmssd_dev = round((current_rmssd - model["rmssd"]["mean"]) / model["rmssd"]["std"], 1)
-        delta_ms = round(current_rmssd - model["rmssd"]["mean"], 1)
-        st.metric("RMSSD vs Baseline", f"{rmssd_dev:+.1f}s", delta=f"{delta_ms:+.1f} ms")
-    else:
-        st.metric("RMSSD vs Baseline", "No model yet")
-
-st.divider()
 
 # ── RR interval chart ─────────────────────────────────────────────────────────
 

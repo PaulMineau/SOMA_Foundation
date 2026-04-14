@@ -115,6 +115,35 @@ def classify_state(
         state = "baseline"
         reason = "Within normal range."
 
+    # Enrich with Fitbit overnight context if available
+    fitbit_context: dict = {}
+    try:
+        from soma.proto_self.fitbit.fitbit_dashboard import get_today_fitbit
+        fb = get_today_fitbit()
+        if fb:
+            fitbit_context = {
+                "sleep_hrs": round(fb.get("sleep_duration_min", 0) / 60, 1),
+                "deep_sleep_min": fb.get("deep_sleep_min", 0),
+                "sleep_efficiency": fb.get("sleep_efficiency"),
+                "overnight_hrv": fb.get("hrv_rmssd"),
+                "recovery_score": fb.get("recovery_score", 0),
+                "spo2_avg": fb.get("spo2_avg"),
+                "steps": fb.get("steps", 0),
+            }
+
+            # Fitbit recovery score can shift state assessment
+            recovery = fb.get("recovery_score", 5)
+            sleep_hrs = fb.get("sleep_duration_min", 0) / 60
+
+            if recovery <= 3 and state in ("baseline", "recovering"):
+                state = "depleted"
+                reason += f" Fitbit recovery {recovery}/10, sleep {sleep_hrs:.1f}h."
+            elif recovery >= 8 and state == "baseline":
+                state = "restored"
+                reason += f" Fitbit recovery {recovery}/10."
+    except Exception:
+        pass
+
     return {
         "state": state,
         "reason": reason,
@@ -122,6 +151,7 @@ def classify_state(
         "rmssd": rmssd,
         "rhr_z": round(rhr_z, 2),
         "rmssd_z": round(rmssd_z, 2),
+        "fitbit": fitbit_context,
     }
 
 
@@ -133,6 +163,18 @@ def main() -> None:
         print(f"   RHR: {s['rhr']} bpm ({s['rhr_z']:+.1f}s)")
     if s["rmssd"] is not None:
         print(f"   RMSSD: {s['rmssd']} ms ({s['rmssd_z']:+.1f}s)")
+
+    fb = s.get("fitbit", {})
+    if fb:
+        print(f"\n   Fitbit overnight:")
+        if fb.get("overnight_hrv"):
+            print(f"     HRV (overnight): {fb['overnight_hrv']:.1f} ms")
+        if fb.get("sleep_hrs"):
+            print(f"     Sleep: {fb['sleep_hrs']}h ({fb.get('deep_sleep_min', 0)}m deep)")
+        if fb.get("recovery_score"):
+            print(f"     Recovery: {fb['recovery_score']}/10")
+        if fb.get("spo2_avg"):
+            print(f"     SpO2: {fb['spo2_avg']:.1f}%")
 
 
 if __name__ == "__main__":
