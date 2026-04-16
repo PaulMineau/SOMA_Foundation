@@ -21,6 +21,8 @@ dependencies = [
     "feedparser>=6.0",
     "requests>=2.31",
     "requests-oauthlib>=1.3",
+    "pyjwt>=2.8",
+    "pyedflib>=0.1.38",
     "uvicorn>=0.30",
     "mypy>=1.11",
     "pytest>=8.0",
@@ -43,6 +45,9 @@ soma-substack = "soma.proto_self.substack_agent:main"
 soma-articles = "soma.proto_self.article_review:main"
 soma-probe = "soma.proto_self.probe_interface:main"
 soma-narrative = "soma.proto_self.narrative_builder:main"
+soma-cpap-sync = "soma.proto_self.cpap.daily_sync:main"
+soma-cpap-myair = "soma.proto_self.cpap.myair_client:main"
+soma-cpap-edf = "soma.proto_self.cpap.edf_parser:main"
 soma-profile = "soma.proto_self.soma_profile:main"
 
 [tool.setuptools.packages.find]

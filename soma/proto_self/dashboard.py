@@ -162,6 +162,74 @@ if _fb_data:
 
     st.divider()
 
+# ── CPAP (ResMed myAir) ──────────────────────────────────────────────────────
+
+try:
+    from soma.proto_self.cpap.cpap_ingestor import get_recent_cpap_days
+    from soma.proto_self.cpap.correlator import (
+        correlate_cpap_to_recovery,
+        get_compliance_stats,
+    )
+
+    _cpap_days = get_recent_cpap_days(n=30)
+    if _cpap_days:
+        st.subheader("Sleep-Disordered Breathing (CPAP)")
+
+        _latest_cpap = _cpap_days[0]
+        _compliance = get_compliance_stats(days=30)
+
+        cp1, cp2, cp3, cp4, cp5 = st.columns(5)
+        with cp1:
+            ahi = _latest_cpap.get("ahi", 0)
+            ahi_status = "good" if ahi < 5 else "mild" if ahi < 15 else "moderate+"
+            st.metric("Last Night AHI", f"{ahi:.1f}", help=f"Status: {ahi_status}")
+        with cp2:
+            usage = _latest_cpap.get("usage_min", 0) / 60
+            st.metric("Usage", f"{usage:.1f}h")
+        with cp3:
+            score = _latest_cpap.get("sleep_score", 0)
+            st.metric("myAir Score", f"{score}/100" if score else "---")
+        with cp4:
+            leak = _latest_cpap.get("leak_p95", 0) or _latest_cpap.get("leak_percentile", 0)
+            st.metric("Leak (p95)", f"{leak:.0f}L/min" if leak else "---")
+        with cp5:
+            st.metric("30d Compliance", f"{_compliance['compliance_pct']:.0f}%",
+                      help=f"{_compliance['n']} nights, avg AHI {_compliance['avg_ahi']}")
+
+        # Correlation with Fitbit recovery
+        _corr = correlate_cpap_to_recovery(days=30)
+        if not _corr.get("insufficient_data") and _corr.get("insights"):
+            st.info("  |  ".join(_corr["insights"]))
+
+        # 14-day AHI chart
+        try:
+            import pandas as _pd
+            _cpap_chart = list(reversed(_cpap_days[:14]))
+            _cpap_df = _pd.DataFrame(_cpap_chart)
+            if not _cpap_df.empty:
+                _cpap_df["usage_hrs"] = _cpap_df["usage_min"] / 60
+                chart_cols = ["date", "ahi", "usage_hrs"]
+                chart_df = _cpap_df[chart_cols].set_index("date")
+                chart_df.columns = ["AHI (events/hr)", "Usage (hrs)"]
+                st.line_chart(chart_df)
+        except Exception:
+            pass
+
+        # AHI vs Recovery scatter if we have paired data
+        if not _corr.get("insufficient_data") and _corr.get("paired"):
+            paired_df = _pd.DataFrame(_corr["paired"])
+            correlations = _corr.get("correlations", {})
+            ahi_rec_r = correlations.get("ahi_vs_recovery", 0)
+            ahi_hrv_r = correlations.get("ahi_vs_hrv", 0)
+            st.caption(
+                f"Correlation with next-day recovery: r={ahi_rec_r:+.2f}  |  "
+                f"AHI vs HRV: r={ahi_hrv_r:+.2f}  |  n={_corr['n']} paired nights"
+            )
+
+        st.divider()
+except Exception as _e:
+    pass
+
 # ── Polar H10 Live Metrics ───────────────────────────────────────────────────
 
 if current_rhr or current_rmssd:
@@ -282,6 +350,58 @@ try:
                 st.caption(f"Valence: {_vlabel} ({_val:+.2f})")
 except Exception as _e:
     st.info(f"Memory timeline unavailable: {_e}")
+
+st.divider()
+
+# ── Brain Simulation (Week 5) ────────────────────────────────────────────────
+
+st.subheader("Brain Simulation")
+
+try:
+    import lancedb as _lancedb
+    _brain_db_path = os.path.expanduser(os.environ.get("LANCEDB_PATH", "~/.soma/lancedb"))
+    if os.path.exists(_brain_db_path):
+        _brain_db = _lancedb.connect(_brain_db_path)
+        if "soma_episodes" in _brain_db.table_names():
+            _ep_tbl = _brain_db.open_table("soma_episodes")
+            _ep_df = _ep_tbl.to_pandas()
+            if not _ep_df.empty:
+                _ep_df = _ep_df.sort_values("timestamp", ascending=False)
+                _latest_ep = _ep_df.iloc[0].to_dict()
+                _total_cycles = len(_ep_df)
+
+                bc1, bc2, bc3, bc4 = st.columns(4)
+                with bc1:
+                    st.metric("Total Cycles", _total_cycles)
+                with bc2:
+                    _val = _latest_ep.get("valence", 0)
+                    _v_label = "positive" if _val > 0.2 else "negative" if _val < -0.2 else "neutral"
+                    st.metric("Last Valence", f"{_val:.2f}", help=_v_label)
+                with bc3:
+                    _aro = _latest_ep.get("arousal", 0)
+                    st.metric("Last Arousal", f"{_aro:.2f}")
+                with bc4:
+                    st.metric("Dominant Drive", _latest_ep.get("drive", "---"))
+
+                # Recent brain cycles
+                with st.expander("Recent brain cycles"):
+                    for _, _ep in _ep_df.head(5).iterrows():
+                        _ts = str(_ep.get("timestamp", ""))[:16].replace("T", " ")
+                        _drive = _ep.get("drive", "?")
+                        _v = _ep.get("valence", 0)
+                        _a = _ep.get("arousal", 0)
+                        _text = str(_ep.get("text", ""))[:200]
+                        st.caption(f"[{_ts}] {_drive} val={_v:.2f} aro={_a:.2f}")
+                        st.write(_text)
+                        st.divider()
+            else:
+                st.info("Brain initialized but no cycles yet. Run: `python -m soma.soma_brain --single`")
+        else:
+            st.info("Brain not yet running. Start: `python -m soma.soma_brain`")
+    else:
+        st.info("Brain not yet initialized. Start: `python -m soma.soma_brain --single`")
+except Exception as _e:
+    st.info(f"Brain status unavailable: {_e}")
 
 st.divider()
 

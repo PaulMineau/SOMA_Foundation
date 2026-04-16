@@ -144,6 +144,32 @@ def classify_state(
     except Exception:
         pass
 
+    # Enrich with CPAP context if available
+    cpap_context: dict = {}
+    try:
+        from soma.proto_self.cpap.cpap_ingestor import get_recent_cpap_days
+        cpap_days = get_recent_cpap_days(n=1)
+        if cpap_days:
+            cp = cpap_days[0]
+            cpap_context = {
+                "last_ahi": cp.get("ahi", 0),
+                "last_usage_hrs": round(cp.get("usage_min", 0) / 60, 1),
+                "last_cpap_score": cp.get("sleep_score", 0),
+                "last_leak_p95": cp.get("leak_p95", 0) or cp.get("leak_percentile", 0),
+            }
+
+            # High AHI night suggests physiological cost
+            ahi = cp.get("ahi", 0)
+            usage_min = cp.get("usage_min", 0)
+
+            if ahi >= 15 and state in ("baseline", "restored"):
+                state = "recovering"
+                reason += f" CPAP AHI {ahi:.1f} last night — hypoxic burden."
+            elif usage_min < 240 and ahi >= 10:
+                reason += f" CPAP under-used ({usage_min // 60}h) with AHI {ahi:.1f}."
+    except Exception:
+        pass
+
     return {
         "state": state,
         "reason": reason,
@@ -152,6 +178,7 @@ def classify_state(
         "rhr_z": round(rhr_z, 2),
         "rmssd_z": round(rmssd_z, 2),
         "fitbit": fitbit_context,
+        "cpap": cpap_context,
     }
 
 
@@ -175,6 +202,16 @@ def main() -> None:
             print(f"     Recovery: {fb['recovery_score']}/10")
         if fb.get("spo2_avg"):
             print(f"     SpO2: {fb['spo2_avg']:.1f}%")
+
+    cp = s.get("cpap", {})
+    if cp:
+        print(f"\n   CPAP last night:")
+        if cp.get("last_ahi") is not None:
+            print(f"     AHI: {cp['last_ahi']:.1f}")
+        if cp.get("last_usage_hrs"):
+            print(f"     Usage: {cp['last_usage_hrs']}h")
+        if cp.get("last_cpap_score"):
+            print(f"     myAir Score: {cp['last_cpap_score']}/100")
 
 
 if __name__ == "__main__":

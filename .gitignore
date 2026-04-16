@@ -21,5 +21,6 @@ logs/
 *.DS_Store
 .venv/
 .fitbit_*.json
+.resmed_*.json
 *_tokens.json
 *_config.json
